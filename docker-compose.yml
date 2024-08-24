@@ -1,0 +1,51 @@
+version: "3.5"
+
+services:
+  api:
+    platform: linux/x86_64
+    build: .
+    environment:
+      - DB_HOSTNAME=db
+      - SPRING_PROFILES_ACTIVE=postgres
+    ports:
+      - "8181:8181"
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: '2048MB'
+    depends_on:
+      - db
+  db:
+    platform: linux/x86_64
+    image: postgres:latest
+    hostname: db
+    environment:
+      - POSTGRES_PASSWORD=root
+      - POSTGRES_USER=root
+      - POSTGRES_DB=authorizer_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./src/main/resources:/docker-entrypoint-initdb.d/
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: '2024MB'
+
+# O uso do modo `bridge` deve ser adequado à carga que será usada no teste.
+# A edição anterior se beneficiou do modo host pois o volume de requisições
+# era relativamente alto e a virtualização da rede se tornou um gargalo, mas
+# este modo é mais complexo de ser configurado. Fique à vontade para usar o
+# modo que quiser desde que não conflite com portas trivialmente usadas em um
+# SO.
+networks:
+  default:
+    driver: bridge
+    name: authorizer
